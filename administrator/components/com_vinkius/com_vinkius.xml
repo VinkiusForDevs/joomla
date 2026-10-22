@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="component" method="upgrade">
+  <name>com_vinkius</name>
+  <creationDate>2026-10-23</creationDate>
+  <author>Vinkius</author>
+  <authorUrl>https://vinkius.com</authorUrl>
+  <copyright>Copyright (C) 2026 Vinkius. All rights reserved.</copyright>
+  <license>GNU General Public License version 2 or later</license>
+  <version>1.0.0</version>
+  <description>Vinkius AI Governance for Joomla</description>
+  <namespace path="src">Joomla\Component\Vinkius</namespace>
+  <files folder="site">
+    <filename>vinkius.php</filename>
+  </files>
+  <administration>
+    <menu>COM_VINKIUS</menu>
+    <files folder="administrator">
+      <filename>vinkius.php</filename>
+      <folder>src</folder>
+      <folder>tmpl</folder>
+      <folder>admin</folder>
+    </files>
+    <languages folder="administrator/language">
+      <language tag="en-GB">en-GB/com_vinkius.ini</language>
+    </languages>
+  </administration>
+</extension>
