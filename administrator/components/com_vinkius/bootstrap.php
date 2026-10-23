@@ -2,6 +2,10 @@
 defined('_JEXEC') or die;
 
 $componentPath = __DIR__;
+if (!defined('MINUTE_IN_SECONDS')) { define('MINUTE_IN_SECONDS', 60); }
+if (!defined('HOUR_IN_SECONDS')) { define('HOUR_IN_SECONDS', 3600); }
+if (!defined('DAY_IN_SECONDS')) { define('DAY_IN_SECONDS', 86400); }
+if (!defined('WEEK_IN_SECONDS')) { define('WEEK_IN_SECONDS', 604800); }
 define('VC_VERSION', '1.0.0');
 define('VC_PLUGIN_DIR', $componentPath . '/');
 define('VC_PLUGIN_URL', \Joomla\CMS\Uri\Uri::root() . 'administrator/components/com_vinkius/');
@@ -61,7 +65,7 @@ if (!function_exists('delete_transient')) { function delete_transient($k) { retu
 if (!function_exists('get_bloginfo')) { function get_bloginfo($s) { if ($s === 'name') return 'Joomla Site'; if ($s === 'description') return ''; return ''; } }
 if (!function_exists('get_site_url')) { function get_site_url() { return \Joomla\CMS\Uri\Uri::root(); } }
 if (!function_exists('admin_url')) { function admin_url($p = '') { return \Joomla\CMS\Uri\Uri::root() . 'administrator/index.php?option=com_vinkius'; } }
-if (!function_exists('rest_url')) { function rest_url($p = '') { return \Joomla\CMS\Uri\Uri::root() . 'administrator/index.php?option=com_vinkius&task=ajax&route=' . urlencode(ltrim($p, '/')); } }
+if (!function_exists('rest_url')) { function rest_url($p = '') { $p = preg_replace('#^vinkius/v1/#', '', ltrim($p, '/')); return \Joomla\CMS\Uri\Uri::root() . 'administrator/index.php?option=com_vinkius&task=ajax&route=' . urlencode($p); } }
 if (!function_exists('plugin_dir_path')) { function plugin_dir_path($f) { return VC_PLUGIN_DIR; } }
 if (!function_exists('plugin_dir_url')) { function plugin_dir_url($f) { return VC_PLUGIN_URL; } }
 if (!function_exists('plugin_basename')) { function plugin_basename($f) { return 'com_vinkius'; } }
@@ -73,7 +77,7 @@ if (!function_exists('apply_filters')) { function apply_filters($h, $v, ...$a) {
 if (!function_exists('wp_enqueue_style')) { function wp_enqueue_style(...$a) {} }
 if (!function_exists('wp_enqueue_script')) { function wp_enqueue_script(...$a) {} }
 if (!function_exists('wp_localize_script')) { function wp_localize_script(...$a) {} }
-if (!function_exists('is_wp_error')) { function is_wp_error($t) { return false; } }
+if (!function_exists('is_wp_error')) { function is_wp_error($t) { return $t instanceof \WP_Error; } }
 if (!function_exists('wp_unslash')) { function wp_unslash($v) { return $v; } }
 if (!function_exists('wp_parse_args')) { function wp_parse_args($a, $d = []) { if (is_object($a)) $a = get_object_vars($a); if (!is_array($a)) $a = []; return array_merge($d, $a); } }
 if (!function_exists('current_user_can')) { function current_user_can($cap) { return true; } }
@@ -82,7 +86,7 @@ if (!function_exists('check_admin_referer')) { function check_admin_referer($a) 
 if (!function_exists('wp_safe_redirect')) { function wp_safe_redirect($l) { header('Location: ' . $l); exit; } }
 if (!function_exists('add_query_arg')) { function add_query_arg($a, $u = '') { if (is_array($a)) { $q = http_build_query($a); return $u . '?' . $q; } return $u; } }
 if (!function_exists('wp_die')) { function wp_die($m = '') { echo $m; exit; } }
-if (!function_exists('get_current_user_id')) { function get_current_user_id() { return 1; } }
+if (!function_exists('get_current_user_id')) { function get_current_user_id() { return (int) \Joomla\CMS\Factory::getUser()->id; } }
 if (!function_exists('get_locale')) { function get_locale() { return 'en_US'; } }
 if (!function_exists('wp_rand')) { function wp_rand($min = 0, $max = 0) { return random_int($min ?: 0, $max ?: mt_getrandmax()); } }
 if (!function_exists('wp_nonce_field')) { function wp_nonce_field($a, $n = '_wpnonce', $r = true, $e = true) { $f = '<input type="hidden" name="' . $n . '" value="nonce" />'; if ($e) { echo $f; return null; } return $f; } }
@@ -92,5 +96,83 @@ if (!function_exists('wp_mail')) { function wp_mail(...$a) { return true; } }
 if (!function_exists('add_shortcode')) { function add_shortcode(...$a) { return true; } }
 if (!function_exists('wp_clear_scheduled_hook')) { function wp_clear_scheduled_hook(...$a) { return true; } }
 if (!function_exists('wp_verify_nonce')) { function wp_verify_nonce($n, $a) { return true; } }
+if (!function_exists('wp_salt')) { function wp_salt($s = 'auth') { return \Joomla\CMS\Factory::getConfig()->get('secret', ''); } }
+
+if (!function_exists('rest_ensure_response')) { function rest_ensure_response($d) { return $d instanceof \WP_REST_Response ? $d : new \WP_REST_Response($d); } }
+
+if (!class_exists('WP_Error')) {
+  class WP_Error {
+    private $code;
+    private $message;
+    public function __construct($code = '', $message = '') { $this->code = $code; $this->message = $message; }
+    public function get_error_code() { return $this->code; }
+    public function get_error_message() { return $this->message; }
+  }
+}
+
+if (!function_exists('wp_remote_request')) {
+  function wp_remote_request($url, $args = array()) {
+    $method = strtoupper(isset($args['method']) ? $args['method'] : 'GET');
+    $timeout = isset($args['timeout']) ? (int) $args['timeout'] : 30;
+    $headers = array();
+    foreach ((array) (isset($args['headers']) ? $args['headers'] : array()) as $k => $v) {
+      $headers[] = is_int($k) ? $v : $k . ': ' . $v;
+    }
+    $body = isset($args['body']) ? $args['body'] : null;
+
+    if (function_exists('curl_init')) {
+      $ch = curl_init($url);
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+      curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+      curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+      curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
+      if ($body !== null) { curl_setopt($ch, CURLOPT_POSTFIELDS, $body); }
+      $response = curl_exec($ch);
+      if ($response === false) {
+        $error = curl_error($ch);
+        curl_close($ch);
+        return new WP_Error('http_error', $error);
+      }
+      $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+      curl_close($ch);
+      return array('response' => array('code' => $code), 'body' => (string) $response);
+    }
+
+    $context = stream_context_create(array('http' => array(
+      'method' => $method,
+      'header' => implode("\r\n", $headers),
+      'content' => $body,
+      'timeout' => $timeout,
+      'ignore_errors' => true,
+    )));
+    $response = @file_get_contents($url, false, $context);
+    if ($response === false) { return new WP_Error('http_error', 'Request failed'); }
+    $code = 0;
+    if (isset($http_response_header[0]) && preg_match('/\s(\d{3})\s/', $http_response_header[0], $m)) { $code = (int) $m[1]; }
+    return array('response' => array('code' => $code), 'body' => (string) $response);
+  }
+}
+if (!function_exists('wp_remote_retrieve_response_code')) { function wp_remote_retrieve_response_code($r) { return is_array($r) && isset($r['response']['code']) ? (int) $r['response']['code'] : 0; } }
+if (!function_exists('wp_remote_retrieve_body')) { function wp_remote_retrieve_body($r) { return is_array($r) && isset($r['body']) ? (string) $r['body'] : ''; } }
+
+if (!class_exists('WP_REST_Request')) {
+  class WP_REST_Request implements \ArrayAccess {
+    private $params = array();
+    public function set($k, $v) { $this->params[$k] = $v; }
+    public function get_param($k) { return $this->params[$k] ?? null; }
+    public function offsetExists($o): bool { return isset($this->params[$o]); }
+    public function offsetGet($o): mixed { return $this->params[$o] ?? null; }
+    public function offsetSet($o, $v): void { $this->params[$o] = $v; }
+    public function offsetUnset($o): void { unset($this->params[$o]); }
+  }
+}
+if (!class_exists('WP_REST_Response')) {
+  class WP_REST_Response {
+    public $data;
+    public $status = 200;
+    public function __construct($d = null, $s = 200) { $this->data = $d; $this->status = $s; }
+  }
+}
 
 require_once VC_PLUGIN_DIR . 'includes/autoload.php';
+if (class_exists('VinkiusConnector\Options')) { \VinkiusConnector\Options::ensure_defaults(); }

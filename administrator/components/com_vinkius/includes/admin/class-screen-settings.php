@@ -84,15 +84,7 @@ class ScreenSettings extends ScreenBase {
 
 		update_option( Options::KEY, $saved );
 
-		wp_safe_redirect(
-			add_query_arg(
-				array(
-					'page'     => 'vinkius-connector-settings',
-					'vc-saved' => '1',
-				),
-				admin_url( 'admin.php' )
-			)
-		);
+		wp_safe_redirect( \Joomla\CMS\Router\Route::_( 'index.php?option=com_vinkius&section=settings&vc-saved=1' ) );
 		exit;
 	}
 }

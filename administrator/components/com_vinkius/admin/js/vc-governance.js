@@ -17,6 +17,7 @@
 (function () {
 	'use strict';
 
+	function vcBoot() {
 	if (typeof VCConfig === 'undefined') {
 		return;
 	}
@@ -3270,4 +3271,11 @@
 
 	bootSection();
 	bootCapabilities();
+	}
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', vcBoot);
+	} else {
+		vcBoot();
+	}
 })();

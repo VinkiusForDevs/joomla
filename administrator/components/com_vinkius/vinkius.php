@@ -1,10 +1,10 @@
 <?php
 defined('_JEXEC') or die;
 
-require_once __DIR__ . '/bootstrap.php';
-
 use Joomla\CMS\Factory;
 use Joomla\Component\Vinkius\Administrator\Controller\DisplayController;
+
+require_once __DIR__ . '/bootstrap.php';
 
 $app = Factory::getApplication();
 $controller = new DisplayController($app->input, $app);

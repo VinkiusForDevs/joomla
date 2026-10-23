@@ -16,12 +16,13 @@
     <menu>COM_VINKIUS</menu>
     <files folder="administrator">
       <filename>vinkius.php</filename>
+      <filename>bootstrap.php</filename>
       <folder>src</folder>
       <folder>tmpl</folder>
       <folder>admin</folder>
+      <folder>includes</folder>
+      <folder>languages</folder>
+      <folder>language</folder>
     </files>
-    <languages folder="administrator/language">
-      <language tag="en-GB">en-GB/com_vinkius.ini</language>
-    </languages>
   </administration>
 </extension>
